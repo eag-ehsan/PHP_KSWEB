@@ -1,1 +1,0 @@
-Couldn't find the requested file /dist/fretdrom.min.js in fretdrom.
