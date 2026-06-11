@@ -1,0 +1,566 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ویرایشگر سطح - بازی توپ گرانشی</title>
+    <style>
+        * {
+            user-select: none;
+        }
+        body {
+            background: #1a472a;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            padding: 20px;
+            direction: rtl;
+        }
+        .editor-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: #0a1f12;
+            border-radius: 20px;
+            padding: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+        }
+        h1 {
+            color: #ffefb9;
+            margin-bottom: 20px;
+        }
+        .toolbar {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+            align-items: center;
+            background: #1e3a2f;
+            padding: 15px;
+            border-radius: 15px;
+        }
+        .tool-btn {
+            background: #f4c542;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 10px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: 0.1s;
+        }
+        .tool-btn.active {
+            background: #ff8800;
+            box-shadow: 0 0 0 2px white;
+        }
+        .tool-btn:hover {
+            transform: scale(1.02);
+        }
+        .canvas-area {
+            display: flex;
+            gap: 20px;
+            flex-wrap: wrap;
+        }
+        canvas {
+            background-color: #1e3a2f;
+            border-radius: 15px;
+            box-shadow: 0 0 0 3px #ffd966;
+            cursor: crosshair;
+        }
+        .controls {
+            background: #1e3a2f;
+            padding: 15px;
+            border-radius: 15px;
+            color: #ffefb9;
+            min-width: 250px;
+        }
+        .controls label {
+            display: block;
+            margin: 10px 0 5px;
+        }
+        .controls input, .controls select {
+            width: 100%;
+            padding: 5px;
+            border-radius: 8px;
+            border: none;
+            margin-bottom: 10px;
+        }
+        .page-buttons {
+            display: flex;
+            gap: 10px;
+            margin: 15px 0;
+            flex-wrap: wrap;
+        }
+        .page-btn {
+            background: #8B5A2B;
+            color: white;
+            border: none;
+            padding: 8px 12px;
+            border-radius: 8px;
+            cursor: pointer;
+        }
+        .page-btn.active-page {
+            background: #f4c542;
+            color: #2d2b1f;
+        }
+        .export-area {
+            margin-top: 20px;
+            background: #0a2a1a;
+            padding: 15px;
+            border-radius: 15px;
+        }
+        pre {
+            background: #2d2b1f;
+            color: #ffefb9;
+            padding: 10px;
+            border-radius: 10px;
+            overflow-x: auto;
+            font-size: 12px;
+            max-height: 300px;
+        }
+        button {
+            background: #f4c542;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 10px;
+            font-weight: bold;
+            cursor: pointer;
+            margin: 5px;
+        }
+        .delete-btn {
+            background: #cc4444;
+            color: white;
+        }
+        .object-list {
+            max-height: 200px;
+            overflow-y: auto;
+            background: #0a1f12;
+            padding: 10px;
+            border-radius: 10px;
+            margin-top: 10px;
+        }
+        .object-item {
+            background: #2d2b1f;
+            margin: 5px 0;
+            padding: 5px 8px;
+            border-radius: 8px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 12px;
+        }
+        .object-item button {
+            padding: 2px 8px;
+            font-size: 11px;
+        }
+        .coord-info {
+            font-size: 12px;
+            margin-top: 10px;
+            color: #ffd966;
+        }
+    </style>
+</head>
+<body>
+<div class="editor-container">
+    <h1>🎮 ویرایشگر سطح بازی توپ گرانشی</h1>
+    
+    <div class="toolbar">
+        <span style="color:#ffefb9">ابزارها:</span>
+        <button class="tool-btn" id="tool-wall" data-type="wall">🧱 دیوار (سنگ)</button>
+        <button class="tool-btn" id="tool-platform" data-type="platform">🌿 پلتفرم (چمن)</button>
+        <button class="tool-btn" id="tool-pillar" data-type="pillar">🧱 ستون آجری</button>
+        <button class="tool-btn" id="tool-box" data-type="box">📦 جعبه</button>
+        <button class="tool-btn" id="tool-delete" data-type="delete">❌ حذف</button>
+        <span style="color:#ffefb9">|</span>
+        <button class="tool-btn" id="clear-page">🗑️ پاک کردن صفحه</button>
+    </div>
+    
+    <div class="canvas-area">
+        <canvas id="editorCanvas" width="350" height="550" style="cursor: crosshair;"></canvas>
+        
+        <div class="controls">
+            <div class="page-buttons" id="page-buttons"></div>
+            
+            <label>نوع مانع:</label>
+            <select id="object-type">
+                <option value="wall">دیوار (سنگ)</option>
+                <option value="platform">پلتفرم (چمن)</option>
+                <option value="pillar">ستون آجری</option>
+                <option value="box">جعبه</option>
+            </select>
+            
+            <label>ضریب اصطکاک:</label>
+            <input type="range" id="friction" min="0.7" max="1" step="0.01" value="0.92">
+            <span id="friction-val">0.92</span>
+            
+            <label>موقعیت: (کلیک و درگ روی کادر)</label>
+            <div class="coord-info" id="coord-info">x: - , y: -</div>
+            
+            <div class="object-list" id="object-list"></div>
+            
+            <button id="export-json">📤 خروجی JSON</button>
+            <button id="copy-json" class="delete-btn">📋 کپی در کلیپ‌بورد</button>
+        </div>
+    </div>
+    
+    <div class="export-area" id="export-area" style="display: none;">
+        <h3 style="color:#ffefb9">خروجی JSON:</h3>
+        <pre id="json-output"></pre>
+    </div>
+</div>
+
+<script>
+    const W = 350, H = 550;
+    const canvas = document.getElementById('editorCanvas');
+    const ctx = canvas.getContext('2d');
+    canvas.width = W;
+    canvas.height = H;
+    
+    // داده‌های لول
+    let currentLevel = 1;
+    let totalPages = 3;
+    let currentPage = 0;
+    let pages = [];
+    
+    // ابزار جاری
+    let currentTool = 'wall';
+    
+    // وضعیت درگ برای رسم مستطیل
+    let isDragging = false;
+    let startX = 0, startY = 0;
+    let previewRect = null;
+    
+    // ========== توابع کمکی ==========
+    function initEmptyPage() {
+        return [];
+    }
+    
+    function initPages() {
+        pages = [];
+        for(let i = 0; i < totalPages; i++) {
+            pages.push(initEmptyPage());
+        }
+    }
+    
+    // رسم موانع (مشابه بازی برای نمایش)
+    function drawObstacle(obs) {
+        switch(obs.type) {
+            case 'wall':
+                ctx.fillStyle = '#6B6B6B';
+                ctx.fillRect(obs.x, obs.y, obs.w, obs.h);
+                ctx.fillStyle = '#4A4A4A';
+                ctx.fillRect(obs.x + 2, obs.y + 2, obs.w - 4, obs.h - 4);
+                ctx.fillStyle = '#8E8E8E';
+                ctx.fillRect(obs.x + 1, obs.y + 1, 3, obs.h - 2);
+                break;
+            case 'platform':
+                ctx.fillStyle = '#8B5A2B';
+                ctx.fillRect(obs.x, obs.y, obs.w, obs.h);
+                ctx.fillStyle = '#4A8C3F';
+                ctx.fillRect(obs.x, obs.y, obs.w, 8);
+                ctx.fillStyle = '#6AB55A';
+                for(let i = 0; i < obs.w/5; i++) {
+                    ctx.fillRect(obs.x + 2 + i*7, obs.y + 2, 2, 3);
+                }
+                break;
+            case 'pillar':
+                ctx.fillStyle = '#B84C2C';
+                ctx.fillRect(obs.x, obs.y, obs.w, obs.h);
+                ctx.fillStyle = '#9A3A1A';
+                for(let i = 0; i < obs.h/12; i++) {
+                    ctx.fillRect(obs.x + 2, obs.y + i*12 + 2, obs.w - 4, 8);
+                }
+                break;
+            case 'box':
+                ctx.fillStyle = '#C87A3A';
+                ctx.fillRect(obs.x, obs.y, obs.w, obs.h);
+                ctx.fillStyle = '#8B5A2B';
+                ctx.fillRect(obs.x + 3, obs.y + 3, obs.w - 6, obs.h - 6);
+                break;
+        }
+        ctx.strokeStyle = '#FFD966';
+        ctx.lineWidth = 1;
+        ctx.strokeRect(obs.x, obs.y, obs.w, obs.h);
+    }
+    
+    function draw() {
+        ctx.clearRect(0, 0, W, H);
+        
+        // رسم شبکه راهنما (10x10)
+        ctx.strokeStyle = '#ffffff20';
+        ctx.lineWidth = 0.5;
+        for(let i = 0; i < W; i += 20) {
+            ctx.beginPath();
+            ctx.moveTo(i, 0);
+            ctx.lineTo(i, H);
+            ctx.stroke();
+            ctx.beginPath();
+            ctx.moveTo(0, i);
+            ctx.lineTo(W, i);
+            ctx.stroke();
+        }
+        
+        // رسم موانع صفحه فعلی
+        if(pages[currentPage]) {
+            for(let obs of pages[currentPage]) {
+                drawObstacle(obs);
+            }
+        }
+        
+        // رسم پیش‌نمایش مستطیل در حال درگ
+        if(previewRect && isDragging) {
+            ctx.fillStyle = '#ffffff40';
+            ctx.fillRect(previewRect.x, previewRect.y, previewRect.w, previewRect.h);
+            ctx.strokeStyle = '#FFD966';
+            ctx.lineWidth = 2;
+            ctx.strokeRect(previewRect.x, previewRect.y, previewRect.w, previewRect.h);
+        }
+        
+        // رسم خط پایین حفره قرمز
+        ctx.fillStyle = '#FF333380';
+        ctx.fillRect(0, H - 35, W, 35);
+    }
+    
+    // ========== مدیریت رویدادهای ماوس ==========
+    function getMousePos(e) {
+        const rect = canvas.getBoundingClientRect();
+        const scaleX = canvas.width / rect.width;
+        const scaleY = canvas.height / rect.height;
+        let clientX, clientY;
+        
+        if(e.touches) {
+            clientX = e.touches[0].clientX;
+            clientY = e.touches[0].clientY;
+        } else {
+            clientX = e.clientX;
+            clientY = e.clientY;
+        }
+        
+        let x = (clientX - rect.left) * scaleX;
+        let y = (clientY - rect.top) * scaleY;
+        x = Math.min(W, Math.max(0, x));
+        y = Math.min(H, Math.max(0, y));
+        return { x, y };
+    }
+    
+    function onMouseDown(e) {
+        e.preventDefault();
+        const pos = getMousePos(e);
+        startX = pos.x;
+        startY = pos.y;
+        
+        if(currentTool === 'delete') {
+            // حذف مانع در موقعیت کلیک
+            for(let i = 0; i < pages[currentPage].length; i++) {
+                let obs = pages[currentPage][i];
+                if(pos.x >= obs.x && pos.x <= obs.x + obs.w && pos.y >= obs.y && pos.y <= obs.y + obs.h) {
+                    pages[currentPage].splice(i, 1);
+                    updateObjectList();
+                    draw();
+                    break;
+                }
+            }
+        } else {
+            isDragging = true;
+            previewRect = { x: startX, y: startY, w: 0, h: 0 };
+        }
+    }
+    
+    function onMouseMove(e) {
+        if(!isDragging || currentTool === 'delete') return;
+        e.preventDefault();
+        const pos = getMousePos(e);
+        let x = Math.min(startX, pos.x);
+        let y = Math.min(startY, pos.y);
+        let w = Math.abs(pos.x - startX);
+        let h = Math.abs(pos.y - startY);
+        if(w < 5) w = 5;
+        if(h < 5) h = 5;
+        previewRect = { x, y, w, h };
+        draw();
+    }
+    
+    function onMouseUp(e) {
+        if(!isDragging || currentTool === 'delete') {
+            isDragging = false;
+            previewRect = null;
+            return;
+        }
+        e.preventDefault();
+        
+        if(previewRect && previewRect.w >= 5 && previewRect.h >= 5) {
+            let newObs = {
+                x: Math.round(previewRect.x),
+                y: Math.round(previewRect.y),
+                w: Math.round(previewRect.w),
+                h: Math.round(previewRect.h),
+                type: currentTool,
+                friction: parseFloat(document.getElementById('friction').value)
+            };
+            pages[currentPage].push(newObs);
+            updateObjectList();
+        }
+        
+        isDragging = false;
+        previewRect = null;
+        draw();
+    }
+    
+    // ========== آپدیت لیست اشیاء ==========
+    function updateObjectList() {
+        const listDiv = document.getElementById('object-list');
+        if(!pages[currentPage]) return;
+        
+        listDiv.innerHTML = '<strong>اشیاء صفحه:</strong>';
+        for(let i = 0; i < pages[currentPage].length; i++) {
+            let obs = pages[currentPage][i];
+            let typeName = { wall: 'دیوار', platform: 'پلتفرم', pillar: 'ستون', box: 'جعبه' }[obs.type];
+            let div = document.createElement('div');
+            div.className = 'object-item';
+            div.innerHTML = `
+                <span>${typeName} (${obs.x},${obs.y}) ${obs.w}x${obs.h}</span>
+                <button onclick="deleteObject(${i})">❌</button>
+            `;
+            listDiv.appendChild(div);
+        }
+        draw();
+    }
+    
+    window.deleteObject = function(idx) {
+        if(confirm('حذف شود؟')) {
+            pages[currentPage].splice(idx, 1);
+            updateObjectList();
+        }
+    };
+    
+    // ========== مدیریت صفحات ==========
+    function updatePageButtons() {
+        const container = document.getElementById('page-buttons');
+        container.innerHTML = '';
+        for(let i = 0; i < totalPages; i++) {
+            let btn = document.createElement('button');
+            btn.className = 'page-btn' + (currentPage === i ? ' active-page' : '');
+            btn.innerText = `صفحه ${i+1}`;
+            btn.onclick = (function(pageIdx) {
+                return function() { changePage(pageIdx); };
+            })(i);
+            container.appendChild(btn);
+        }
+    }
+    
+    function changePage(pageIdx) {
+        currentPage = pageIdx;
+        updatePageButtons();
+        updateObjectList();
+        draw();
+    }
+    
+    // ========== خروجی JSON ==========
+    function exportToJSON() {
+        let levelData = {
+            level: currentLevel,
+            name: "لول جدید",
+            totalPages: totalPages,
+            difficulty: "medium",
+            gravityMultiplier: 1.0,
+            pages: []
+        };
+        
+        for(let i = 0; i < pages.length; i++) {
+            let pageObstacles = [];
+            for(let obs of pages[i]) {
+                pageObstacles.push({
+                    x: obs.x,
+                    y: obs.y,
+                    w: obs.w,
+                    h: obs.h,
+                    type: obs.type,
+                    friction: obs.friction
+                });
+            }
+            levelData.pages.push({ obstacles: pageObstacles });
+        }
+        
+        let jsonStr = JSON.stringify(levelData, null, 2);
+        document.getElementById('json-output').innerText = jsonStr;
+        document.getElementById('export-area').style.display = 'block';
+        return jsonStr;
+    }
+    
+    // ========== حذف صفحه جاری ==========
+    function clearCurrentPage() {
+        if(confirm('تمام اشیاء صفحه حذف شوند؟')) {
+            pages[currentPage] = [];
+            updateObjectList();
+        }
+    }
+    
+    // ========== تنظیم ابزار ==========
+    function setTool(type) {
+        currentTool = type;
+        document.querySelectorAll('.tool-btn').forEach(btn => {
+            btn.classList.remove('active');
+        });
+        document.getElementById(`tool-${type}`).classList.add('active');
+    }
+    
+    // ========== مقداردهی اولیه ==========
+    function init() {
+        totalPages = 3;
+        initPages();
+        
+        // اضافه کردن چند مانع نمونه
+        pages[0] = [
+            { x: 50, y: 80, w: 20, h: 100, type: 'wall', friction: 0.92 },
+            { x: 280, y: 120, w: 20, h: 80, type: 'wall', friction: 0.92 },
+            { x: 120, y: 200, w: 80, h: 15, type: 'platform', friction: 0.9 },
+            { x: 150, y: 470, w: 20, h: 40, type: 'box', friction: 0.85 }
+        ];
+        pages[1] = [
+            { x: 40, y: 60, w: 20, h: 120, type: 'wall', friction: 0.92 },
+            { x: 290, y: 80, w: 20, h: 100, type: 'wall', friction: 0.92 },
+            { x: 100, y: 180, w: 70, h: 15, type: 'platform', friction: 0.9 }
+        ];
+        pages[2] = [
+            { x: 50, y: 70, w: 20, h: 100, type: 'wall', friction: 0.92 },
+            { x: 100, y: 180, w: 60, h: 15, type: 'platform', friction: 0.9 }
+        ];
+        
+        updatePageButtons();
+        updateObjectList();
+        draw();
+        
+        // رویدادها
+        canvas.addEventListener('mousedown', onMouseDown);
+        canvas.addEventListener('mousemove', onMouseMove);
+        canvas.addEventListener('mouseup', onMouseUp);
+        canvas.addEventListener('touchstart', onMouseDown);
+        canvas.addEventListener('touchmove', onMouseMove);
+        canvas.addEventListener('touchend', onMouseUp);
+        
+        // نمایش مختصات
+        canvas.addEventListener('mousemove', (e) => {
+            let pos = getMousePos(e);
+            document.getElementById('coord-info').innerHTML = `x: ${Math.round(pos.x)}, y: ${Math.round(pos.y)}`;
+        });
+        
+        document.getElementById('friction').addEventListener('input', (e) => {
+            document.getElementById('friction-val').innerText = e.target.value;
+        });
+        
+        document.getElementById('tool-wall').onclick = () => setTool('wall');
+        document.getElementById('tool-platform').onclick = () => setTool('platform');
+        document.getElementById('tool-pillar').onclick = () => setTool('pillar');
+        document.getElementById('tool-box').onclick = () => setTool('box');
+        document.getElementById('tool-delete').onclick = () => setTool('delete');
+        document.getElementById('clear-page').onclick = () => clearCurrentPage();
+        document.getElementById('export-json').onclick = () => exportToJSON();
+        document.getElementById('copy-json').onclick = () => {
+            let json = exportToJSON();
+            navigator.clipboard.writeText(json);
+            alert('JSON کپی شد!');
+        };
+        
+        setTool('wall');
+    }
+    
+    init();
+</script>
+</body>
+</html>
