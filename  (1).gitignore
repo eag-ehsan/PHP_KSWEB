@@ -1,0 +1,20 @@
+# logs
+*.log
+access_log
+
+# uploads / user files
+uploads/
+
+# secrets / local config
+encryption_key.php
+config/
+
+# temp files
+Temp.txt
+tmp/
+temp/
+
+# OS/editor files
+.DS_Store
+Thumbs.db
+*.swp
