@@ -242,7 +242,7 @@ $description = $_SESSION['user_description'];
                         <a href="editusers.php" class="admin-link">👥 مدیریت کاربران</a>
                     <?php endif; ?>
                     <a href="products.php" class="admin-link">🛒 ثبت خریدها</a>
-                    <a href="ball8.html" class="game-btn">🎮 بازی پینگ پنگ</a>
+                    <a href="ball.html" class="game-btn">🎮 بازی پینگ پنگ</a>
                     <a href="mario.html" class="game-btn">🎮 بازی ماریو </a>
                     <a href="guitar2.html" class="game-btn">   گیتار و آکوردها  </a>
                     <a href="guitar3.php" class="game-btn">   گیتار و آکوردها  </a>
